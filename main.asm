@@ -108,7 +108,7 @@ draw_road:
 
     ; Restore BP after using it for int 0x10
     mov bp, sp
-    add bp, 12 ; point BP back to original stack frame (6 pushed regs * 2)
+    add bp, 18 ; point BP back to original stack frame 
 
     ; Unlock bright background colors
     mov ax, 0x1003
@@ -162,13 +162,56 @@ draw_road:
     pop bp
     ret
 
+draw_time_bar:
+    push ax
+    push cx
+    push di
+    push es
+
+    mov ax, 0xb800
+    mov es, ax
+
+    ;  Print "Time" at Row 1, Col 1 (offset = 1*160 + 1*2 = 162)
+    ; Attribute 0xBF = Light Cyan sky background + Bright White text
+    mov di, 162
+    mov word [es:di],     0xBF54    ; 'T'
+    mov word [es:di + 2], 0xBF69    ; 'i'
+    mov word [es:di + 4], 0xBF6D    ; 'm'
+    mov word [es:di + 6], 0xBF65    ; 'e'
+
+    ;  Draw Top Half of Time Bar (Black: Rows 2 to 8 at Col 2)
+    ; Row 2, Col 2 offset = (2 * 160) + (2 * 2) = 324
+    mov di, 324
+    mov cx, 7                       ; 7 rows tall
+    mov ax, 0x0020                  ; Black background space
+black_loop:
+    mov [es:di], ax
+    add di, 160                     ; Move down 1 row
+    loop .black_loop
+
+    ;  Draw Bottom Half of Time Bar (Red/Orange: Rows 9 to 15 at Col 2)
+    ; DI is already at Row 9, Col 2 (offset 1444)
+    mov cx, 7                       ; 7 rows tall
+    mov ax, 0xCC20                  ; Bright Red-Orange background space
+
+;Two types of parts in time bar in photo so one loop for Red area and one for black area
+red_loop:
+    mov [es:di], ax
+    add di, 160                     ; Move down 1 row
+    loop .red_loop
+
+    pop es
+    pop di
+    pop cx
+    pop ax
+    ret
 start:
     call clear_screen
     call draw_sky
     call draw_land
     call draw_road
+    call draw_time_bar
     
-    ; to remove, added just so we have the last line on the screen empty
     l1:
         jmp l1
 
